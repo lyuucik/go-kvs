@@ -29,6 +29,9 @@ postgres:
   password: password
   database: kvs
   port: 5432
+  persistence:
+    enabled: false
+    size: 10Gi
   resources: {}
 
 redis:

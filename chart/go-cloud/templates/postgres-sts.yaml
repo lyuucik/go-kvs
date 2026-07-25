@@ -7,6 +7,16 @@ metadata:
     {{- include "go-cloud.labels" . | nindent 4 }}
 spec:
   serviceName: postgres
+  {{- if .Values.postgres.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.postgres.persistence.size }}
+  {{- end }}
   replicas: 1
   selector:
     matchLabels:
@@ -16,6 +26,8 @@ spec:
       labels:
         app: postgres
     spec:
+      securityContext:
+        runAsNonRoot: true
       containers:
         - name: postgres
           image: {{ .Values.postgres.image }}
@@ -36,4 +48,13 @@ spec:
               command: [pg_isready]
             initialDelaySeconds: 5
             periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+      {{- if not .Values.postgres.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
 {{- end }}
