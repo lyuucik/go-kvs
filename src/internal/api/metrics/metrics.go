@@ -11,6 +11,7 @@ var (
 	httpRequestsTotal int64
 	cacheHitsTotal    int64
 	cacheMissesTotal  int64
+	cacheErrorsTotal  int64
 	startTime         = time.Now()
 )
 
@@ -48,6 +49,10 @@ func Handler() http.Handler {
 		fmt.Fprintf(w, "# TYPE kv_cache_misses_total counter\n")
 		fmt.Fprintf(w, "kv_cache_misses_total %d\n\n", atomic.LoadInt64(&cacheMissesTotal))
 
+		fmt.Fprintf(w, "# HELP kv_cache_errors_total Total number of cache backend errors\n")
+		fmt.Fprintf(w, "# TYPE kv_cache_errors_total counter\n")
+		fmt.Fprintf(w, "kv_cache_errors_total %d\n\n", atomic.LoadInt64(&cacheErrorsTotal))
+
 		fmt.Fprintf(w, "# HELP kv_uptime_seconds Application uptime in seconds\n")
 		fmt.Fprintf(w, "# TYPE kv_uptime_seconds gauge\n")
 		fmt.Fprintf(w, "kv_uptime_seconds %d\n", int64(time.Since(startTime).Seconds()))
@@ -56,3 +61,4 @@ func Handler() http.Handler {
 
 func IncCacheHits()   { atomic.AddInt64(&cacheHitsTotal, 1) }
 func IncCacheMisses() { atomic.AddInt64(&cacheMissesTotal, 1) }
+func IncCacheErrors() { atomic.AddInt64(&cacheErrorsTotal, 1) }

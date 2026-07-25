@@ -53,8 +53,9 @@ func main() {
 
 	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
 		cached, err := kvs.NewCachedStore(store, redisURL, cacheTTL, kvs.CacheHooks{
-			OnHit:  metrics.IncCacheHits,
-			OnMiss: metrics.IncCacheMisses,
+			OnHit:    metrics.IncCacheHits,
+			OnMiss:   metrics.IncCacheMisses,
+			OnError:  metrics.IncCacheErrors,
 		})
 		if err != nil {
 			log.Printf("redis connection failed, running without cache: %v", err)

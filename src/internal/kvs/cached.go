@@ -9,8 +9,9 @@ import (
 )
 
 type CacheHooks struct {
-	OnHit  func()
-	OnMiss func()
+	OnHit    func()
+	OnMiss   func()
+	OnError  func()
 }
 
 type CachedStore struct {
@@ -51,10 +52,11 @@ func (c *CachedStore) Get(key string) (string, error) {
 		return val, nil
 	}
 	if err != redis.Nil {
-		log.Printf("redis get error (cache miss fallback): %v", err)
-	}
-
-	if c.hooks.OnMiss != nil {
+		log.Printf("redis get error: %v", err)
+		if c.hooks.OnError != nil {
+			c.hooks.OnError()
+		}
+	} else if c.hooks.OnMiss != nil {
 		c.hooks.OnMiss()
 	}
 
