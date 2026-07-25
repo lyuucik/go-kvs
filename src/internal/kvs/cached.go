@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/sync/singleflight"
 )
 
 type CacheHooks struct {
@@ -19,6 +20,7 @@ type CachedStore struct {
 	rdb   *redis.Client
 	ttl   time.Duration
 	hooks CacheHooks
+	sf    singleflight.Group
 }
 
 func NewCachedStore(store KeyValueStore, redisURL string, ttl time.Duration, hooks CacheHooks) (*CachedStore, error) {
@@ -60,21 +62,28 @@ func (c *CachedStore) Get(key string) (string, error) {
 		c.hooks.OnMiss()
 	}
 
-	v, err := c.store.Get(key)
+	v, err, _ := c.sf.Do(key, func() (interface{}, error) {
+		v, err := c.store.Get(key)
+		if err != nil {
+			return "", err
+		}
+
+		setCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if err := c.rdb.Set(setCtx, key, v, c.ttl).Err(); err != nil {
+			log.Printf("redis set error: %v", err)
+		}
+
+		return v, nil
+	})
 	if err != nil {
 		return "", err
 	}
-
-	setCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	if err := c.rdb.Set(setCtx, key, v, c.ttl).Err(); err != nil {
-		log.Printf("redis set error: %v", err)
-	}
-
-	return v, nil
+	return v.(string), nil
 }
 
 func (c *CachedStore) Put(key, value string) error {
+	c.sf.Forget(key)
 	if err := c.store.Put(key, value); err != nil {
 		return err
 	}
@@ -83,6 +92,7 @@ func (c *CachedStore) Put(key, value string) error {
 }
 
 func (c *CachedStore) Delete(key string) error {
+	c.sf.Forget(key)
 	if err := c.store.Delete(key); err != nil {
 		return err
 	}
