@@ -15,16 +15,30 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	store := kvs.NewKeyValueStore()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	databaseURL := os.Getenv("DATABASE_URL")
+	var store kvs.KeyValueStore
+	if databaseURL != "" {
+		pgStore, err := kvs.NewPostgresStore(ctx, databaseURL)
+		if err != nil {
+			log.Fatalf("failed to connect to postgres: %v", err)
+		}
+		defer pgStore.Close()
+		store = pgStore
+		log.Println("using postgres storage")
+	} else {
+		store = kvs.NewKeyValueStore()
+		log.Println("using in-memory storage")
+	}
+
 	h := handler.NewKeyValueHandler(store)
 
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: h.Routes(),
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	go func() {
 		log.Println("starting server on :8080")
