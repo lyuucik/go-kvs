@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -31,6 +32,24 @@ func main() {
 	} else {
 		store = kvs.NewKeyValueStore()
 		log.Println("using in-memory storage")
+	}
+
+	cacheTTL := 5 * time.Minute
+	if ttlStr := os.Getenv("CACHE_TTL"); ttlStr != "" {
+		if sec, err := strconv.Atoi(ttlStr); err == nil {
+			cacheTTL = time.Duration(sec) * time.Second
+		}
+	}
+
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		cached, err := kvs.NewCachedStore(store, redisURL, cacheTTL)
+		if err != nil {
+			log.Printf("redis connection failed, running without cache: %v", err)
+		} else {
+			defer cached.Close()
+			store = cached
+			log.Println("using redis cache")
+		}
 	}
 
 	h := handler.NewKeyValueHandler(store)
