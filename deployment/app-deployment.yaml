@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-cloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-cloud
+  template:
+    metadata:
+      labels:
+        app: go-cloud
+    spec:
+      containers:
+        - name: go-cloud
+          image: go-cloud:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              value: postgres://postgres:password@postgres:5432/kvs?sslmode=disable
+            - name: REDIS_URL
+              value: redis://redis:6379/0
+            - name: CACHE_TTL
+              value: "300"
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
