@@ -4,7 +4,7 @@ namespaceOverride: ""
 app:
   name: go-cloud
   image: ghcr.io/lyuucik/go-kvs
-  tag: 7787bc0144ae1b5d6e1aa9e6e4152690954e25b3
+  tag: 25c85b003966fe97c1bfd49cbc90363bfdfdd431
   pullPolicy: IfNotPresent
   replicas: 1
   port: 8080
