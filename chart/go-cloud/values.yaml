@@ -29,6 +29,8 @@ app:
       initialDelaySeconds: 10
       periodSeconds: 10
 
+# WARNING: passwords here are in plaintext (dev only).
+# For production, use External Secrets / Vault and set postgres.password to null.
 postgres:
   enabled: true
   image: postgres:16-alpine
