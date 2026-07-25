@@ -22,11 +22,11 @@ spec:
             - containerPort: {{ .Values.app.port }}
           env:
             - name: DATABASE_URL
-              value: postgres://postgres:{{ .Values.postgresql.auth.postgresPassword }}@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.auth.database }}?sslmode=disable
+              value: {{ .Values.app.env.databaseUrl | quote }}
             - name: REDIS_URL
-              value: redis://{{ .Release.Name }}-redis:6379/0
+              value: {{ .Values.app.env.redisUrl | quote }}
             - name: CACHE_TTL
-              value: {{ .Values.app.cacheTtl }}
+              value: {{ .Values.app.env.cacheTtl | quote }}
           resources:
             {{- toYaml .Values.app.resources | nindent 12 }}
           readinessProbe:

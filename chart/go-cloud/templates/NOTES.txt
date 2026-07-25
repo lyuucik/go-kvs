@@ -10,7 +10,7 @@ Metrics:
 
 Grafana:
   http://localhost:3000
-  login: admin / {{ .Values.grafana.adminPassword }}
+  login: admin / {{ .Values.monitoring.grafana.adminPassword }}
 
 To run a load test:
   helm test {{ .Release.Name }}
