@@ -1,7 +1,7 @@
 app:
   name: go-cloud
   image: ghcr.io/lyuucik/go-kvs
-  tag: latest
+  tag: 7787bc0144ae1b5d6e1aa9e6e4152690954e25b3
   pullPolicy: IfNotPresent
   replicas: 1
   port: 8080
