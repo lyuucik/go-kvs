@@ -1,28 +1,14 @@
-# 🔧 1. Берем официальный образ Go для сборки (builder)
-FROM golang:1.24-alpine AS builder
-
-# 🚨 Важно: alpine легче, чем debian-based образы
-# Если нужны C-бинды (например, для SQLite), то лучше golang:1.21 (но он тяжелее)
-
-# 2. Создаем рабочую директорию
+FROM golang:1.25-alpine AS builder
 WORKDIR /app
-
-# 3. Копируем зависимости отдельно (чтобы кэшировать слои)
-COPY ../go.mod ../go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
-
-# 🚨 Если у тебя нет go.sum – удали эту строку, но лучше сделай `go mod tidy`!
-
-# 4. Копируем исходники
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/server ./src/cmd/api/
 
-# 5. Собираем бинарник (статически линкуем, чтобы работал в scratch)
-RUN ls
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" /app/src/cmd/api/main.go
-
-# 🔧 6. Переносим бинарник в чистый образ (scratch или alpine)
 FROM alpine:3.18
-
-COPY --from=builder /app/main /app
-
-ENTRYPOINT ["/app"]
+RUN apk add --no-cache ca-certificates wget
+COPY --from=builder /app/server /server
+HEALTHCHECK --interval=10s --timeout=3s --start-period=3s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1
+EXPOSE 8080
+ENTRYPOINT ["/server"]
