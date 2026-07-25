@@ -1,4 +1,4 @@
-{{- if .Values.monitoring.grafana.enabled }}
+{{- if .Values.grafana.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,17 +6,6 @@ metadata:
   labels:
     {{- include "go-cloud.labels" . | nindent 4 }}
 data:
-  dashboards.yaml: |
-    apiVersion: 1
-    providers:
-      - name: 'default'
-        orgId: 1
-        folder: ''
-        type: file
-        disableDeletion: false
-        updateIntervalSeconds: 10
-        options:
-          path: /etc/grafana/provisioning/dashboards
   go-cloud-dashboard.json: |
     {
       "title": "Go-Cloud Dashboard",
