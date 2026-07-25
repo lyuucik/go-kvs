@@ -1,0 +1,44 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [dev, main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Update values.yaml with new image tag
+        run: |
+          sed -i 's|tag: latest|tag: '"${{ github.sha }}"'|' chart/go-cloud/values.yaml
+          sed -i 's|pullPolicy: Never|pullPolicy: IfNotPresent|' chart/go-cloud/values.yaml
+
+      - name: Commit updated values.yaml back to repo
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add chart/go-cloud/values.yaml
+          git diff --cached --quiet || git commit -m "chore: update image tag to ${{ github.sha }}"
+          git push

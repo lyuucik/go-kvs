@@ -1,8 +1,8 @@
 app:
   name: go-cloud
-  image: go-cloud
+  image: ghcr.io/lyuucik/go-kvs
   tag: latest
-  pullPolicy: Never
+  pullPolicy: IfNotPresent
   replicas: 1
   port: 8080
   cacheTtl: 60s

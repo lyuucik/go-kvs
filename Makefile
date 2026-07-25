@@ -7,8 +7,15 @@ run:
 test:
 	go test -v ./...
 
+REGISTRY ?= ghcr.io/lyuucik
+IMAGE_TAG ?= latest
+
 build:
 	docker build -t go-cloud:latest .
+
+build-push:
+	docker build -t $(REGISTRY)/go-kvs:$(IMAGE_TAG) .
+	docker push $(REGISTRY)/go-kvs:$(IMAGE_TAG)
 
 helm-dep:
 	helm dependency build $(CHART)

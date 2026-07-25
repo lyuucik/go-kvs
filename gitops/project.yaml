@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: go-cloud
+  namespace: argocd
+spec:
+  description: Go-Cloud KV Store
+  sourceRepos:
+    - https://github.com/lyuucik/go-kvs.git
+  destinations:
+    - namespace: go-cloud
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  orphanedResources:
+    warn: true
