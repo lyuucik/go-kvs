@@ -8,13 +8,19 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type CacheHooks struct {
+	OnHit  func()
+	OnMiss func()
+}
+
 type CachedStore struct {
 	store KeyValueStore
 	rdb   *redis.Client
 	ttl   time.Duration
+	hooks CacheHooks
 }
 
-func NewCachedStore(store KeyValueStore, redisURL string, ttl time.Duration) (*CachedStore, error) {
+func NewCachedStore(store KeyValueStore, redisURL string, ttl time.Duration, hooks CacheHooks) (*CachedStore, error) {
 	opts, err := redis.ParseURL(redisURL)
 	if err != nil {
 		return nil, err
@@ -30,7 +36,7 @@ func NewCachedStore(store KeyValueStore, redisURL string, ttl time.Duration) (*C
 		return nil, err
 	}
 
-	return &CachedStore{store: store, rdb: rdb, ttl: ttl}, nil
+	return &CachedStore{store: store, rdb: rdb, ttl: ttl, hooks: hooks}, nil
 }
 
 func (c *CachedStore) Get(key string) (string, error) {
@@ -39,10 +45,17 @@ func (c *CachedStore) Get(key string) (string, error) {
 
 	val, err := c.rdb.Get(ctx, key).Result()
 	if err == nil {
+		if c.hooks.OnHit != nil {
+			c.hooks.OnHit()
+		}
 		return val, nil
 	}
 	if err != redis.Nil {
 		log.Printf("redis get error (cache miss fallback): %v", err)
+	}
+
+	if c.hooks.OnMiss != nil {
+		c.hooks.OnMiss()
 	}
 
 	v, err := c.store.Get(key)

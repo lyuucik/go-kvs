@@ -19,7 +19,7 @@ func NewKeyValueHandler(kvs kvs.KeyValueStore) *keyValueHandler {
 	return &keyValueHandler{kvs: kvs, readyz: func(ctx context.Context) error { return kvs.Ping() }}
 }
 
-func (h *keyValueHandler) Routes() http.Handler {
+func (h *keyValueHandler) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", h.healthz)

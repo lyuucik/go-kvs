@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"kvs/src/internal/api/handler"
+	"kvs/src/internal/api/metrics"
 	"kvs/src/internal/kvs"
 	"log"
 	"net/http"
@@ -42,7 +43,10 @@ func main() {
 	}
 
 	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
-		cached, err := kvs.NewCachedStore(store, redisURL, cacheTTL)
+		cached, err := kvs.NewCachedStore(store, redisURL, cacheTTL, kvs.CacheHooks{
+			OnHit:  metrics.IncCacheHits,
+			OnMiss: metrics.IncCacheMisses,
+		})
 		if err != nil {
 			log.Printf("redis connection failed, running without cache: %v", err)
 		} else {
@@ -54,9 +58,13 @@ func main() {
 
 	h := handler.NewKeyValueHandler(store)
 
+	mux := h.Routes()
+	mux.Handle("GET /metrics", metrics.Handler())
+	wrapped := metrics.Middleware(mux)
+
 	srv := &http.Server{
 		Addr:    ":8080",
-		Handler: h.Routes(),
+		Handler: wrapped,
 	}
 
 	go func() {
