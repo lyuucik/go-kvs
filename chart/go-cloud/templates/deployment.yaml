@@ -14,10 +14,20 @@ spec:
       labels:
         {{- include "go-cloud.selectorLabels" . | nindent 8 }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: {{ .Values.app.name }}
           image: "{{ .Values.app.image }}:{{ .Values.app.tag }}"
           imagePullPolicy: {{ .Values.app.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: {{ .Values.app.port }}
           env:
