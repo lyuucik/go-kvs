@@ -148,30 +148,41 @@ go run ./src/cmd/api/main.go
 
 ## Deployment
 
-### Kubernetes Manifests
+### Helm Chart
 
-All resources are in the `go-cloud` namespace.
+All resources are packaged as a Helm chart in `chart/go-cloud/`.
 
-| File | Resource | Purpose |
-|------|----------|---------|
-| `deployment/postgres-secret.yaml` | Secret | PostgreSQL password |
-| `deployment/postgres-sts.yaml` | StatefulSet | PostgreSQL (no PVC — dev only) |
-| `deployment/postgres-svc.yaml` | Service | postgres:5432 |
-| `deployment/redis-deployment.yaml` | Deployment | Redis cache |
-| `deployment/redis-svc.yaml` | Service | redis:6379 |
-| `deployment/app-deployment.yaml` | Deployment | Go app with readiness/liveness probes |
-| `deployment/app-svc.yaml` | Service | go-cloud-svc:80 → 8080 |
-| `deployment/ingress.yaml` | Ingress | nginx, routes `/` to app |
+| Template | Resource | Switched by |
+|----------|----------|-------------|
+| `secret.yaml` | Secret | `postgres.enabled` |
+| `postgres-sts.yaml` | StatefulSet | `postgres.enabled` |
+| `postgres-svc.yaml` | Service | `postgres.enabled` |
+| `redis-deployment.yaml` | Deployment | `redis.enabled` |
+| `redis-svc.yaml` | Service | `redis.enabled` |
+| `deployment.yaml` | Deployment (app) | always |
+| `service.yaml` | Service (app) | always |
+| `ingress.yaml` | Ingress | `ingress.enabled` |
+| `prometheus-config.yaml` | ConfigMap | `monitoring.prometheus.enabled` |
+| `prometheus-deployment.yaml` | Deployment + Service | `monitoring.prometheus.enabled` |
+| `grafana-datasource-config.yaml` | ConfigMap | `monitoring.grafana.enabled` |
+| `grafana-dashboard-config.yaml` | ConfigMap (dashboard JSON) | `monitoring.grafana.enabled` |
+| `grafana-deployment.yaml` | Deployment + Service | `monitoring.grafana.enabled` |
+| `tests/k6-test.yaml` | ConfigMap + Job (helm test) | `helm test` |
 
 **Condition (dev only):** PostgreSQL runs without PersistentVolumeClaim. Data is lost on pod restart.
 
 ```bash
-# Rebuild and redeploy
-make deploy-all    # build + deploy
+# Build + Install
+make deploy
 
-# Or manually tag and apply
-docker build -t go-cloud:latest .
-kubectl apply -f deployment/ --namespace go-cloud
+# Upgrade (after values.yaml changes)
+make helm-upgrade
+
+# Uninstall
+make clean
+
+# Deploy with custom values
+helm upgrade --install go-cloud chart/go-cloud -f my-values.yaml
 ```
 
 ## Monitoring
@@ -222,41 +233,48 @@ The script (`test-load.js`) includes:
 
 ```
 go-cloud/
-├── Dockerfile                  # Multi-stage build (golang:1.25 → alpine:3.18)
+├── Dockerfile                     # Multi-stage build (golang:1.25 → alpine:3.18)
 ├── .dockerignore
-├── Makefile                    # build, deploy, test, k6-run, clean
-├── test-load.js                # k6 load test scenarios
+├── Makefile                       # build, deploy, test, clean
+├── test-load.js                   # k6 load test scenarios (standalone)
 ├── go.mod / go.sum
 ├── src/
-│   ├── cmd/api/main.go         # Entry point: graceful shutdown, healthz/readyz
+│   ├── cmd/api/main.go            # Entry point: graceful shutdown, probes
 │   └── internal/
 │       ├── api/
-│       │   ├── handler/        # HTTP handlers (stdlib mux, no gorilla/mux)
-│       │   └── metrics/        # Custom /metrics endpoint (Prometheus format)
+│       │   ├── handler/           # HTTP handlers (stdlib mux)
+│       │   └── metrics/           # Custom /metrics endpoint
 │       └── kvs/
-│           ├── kvs.go          # KeyValueStore interface
-│           ├── store.go        # In-memory implementation
-│           ├── postgres.go     # PostgreSQL persistence (pgx)
-│           ├── cached.go       # Redis cache decorator with invalidation
-│           ├── errors.go       # ErrorNoSuchKey
-│           ├── kvs_test.go     # In-memory store tests
-│           └── handler_test.go # API integration tests
-└── deployment/
-    ├── app-deployment.yaml     # App deployment with probes and env vars
-    ├── app-svc.yaml            # ClusterIP service
-    ├── ingress.yaml            # nginx ingress
-    ├── postgres-secret.yaml    # DB password secret
-    ├── postgres-sts.yaml       # PostgreSQL StatefulSet
-    ├── postgres-svc.yaml       # PostgreSQL service
-    ├── redis-deployment.yaml   # Redis deployment
-    ├── redis-svc.yaml          # Redis service
-    ├── k6-job.yaml             # Load test ConfigMap + Job
-    └── monitoring/
-        ├── prometheus-config.yaml
-        ├── prometheus-deployment.yaml
-        ├── grafana-datasource-config.yaml
-        ├── grafana-dashboard-config.yaml
-        └── grafana-deployment.yaml
+│           ├── kvs.go             # KeyValueStore interface
+│           ├── store.go           # In-memory implementation
+│           ├── postgres.go        # PostgreSQL persistence (pgx)
+│           ├── cached.go          # Redis cache decorator
+│           ├── errors.go
+│           ├── kvs_test.go        # Store tests
+│           └── handler_test.go    # API tests
+└── chart/
+    └── go-cloud/                  # Helm chart
+        ├── Chart.yaml
+        ├── values.yaml            # All configuration parameters
+        ├── .helmignore
+        └── templates/
+            ├── _helpers.tpl       # Template helpers (labels, names)
+            ├── NOTES.txt          # Post-install instructions
+            ├── secret.yaml        # PostgreSQL password Secret
+            ├── postgres-sts.yaml  # PostgreSQL StatefulSet
+            ├── postgres-svc.yaml  # PostgreSQL Service
+            ├── redis-deployment.yaml
+            ├── redis-svc.yaml
+            ├── deployment.yaml    # App Deployment
+            ├── service.yaml       # App Service
+            ├── ingress.yaml       # Ingress (nginx)
+            ├── prometheus-config.yaml
+            ├── prometheus-deployment.yaml
+            ├── grafana-datasource-config.yaml
+            ├── grafana-dashboard-config.yaml
+            ├── grafana-deployment.yaml
+            └── tests/
+                └── k6-test.yaml   # Helm test: k6 load test
 ```
 
 ## Commit History

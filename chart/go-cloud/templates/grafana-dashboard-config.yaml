@@ -1,8 +1,10 @@
+{{- if .Values.monitoring.grafana.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboard
-  namespace: go-cloud
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
 data:
   dashboards.yaml: |
     apiVersion: 1
@@ -62,3 +64,4 @@ data:
       "schemaVersion": 40,
       "version": 1
     }
+{{- end }}

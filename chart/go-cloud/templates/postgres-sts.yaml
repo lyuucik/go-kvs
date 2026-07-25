@@ -1,8 +1,10 @@
+{{- if .Values.postgres.enabled }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: go-cloud
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
 spec:
   serviceName: postgres
   replicas: 1
@@ -16,9 +18,9 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: {{ .Values.postgres.image }}
           ports:
-            - containerPort: 5432
+            - containerPort: {{ .Values.postgres.port }}
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
@@ -26,10 +28,12 @@ spec:
                   name: postgres-secret
                   key: password
             - name: POSTGRES_DB
-              value: kvs
+              value: {{ .Values.postgres.database }}
+          resources:
+            {{- toYaml .Values.postgres.resources | nindent 12 }}
           readinessProbe:
             exec:
-              command:
-                - pg_isready
+              command: [pg_isready]
             initialDelaySeconds: 5
             periodSeconds: 5
+{{- end }}

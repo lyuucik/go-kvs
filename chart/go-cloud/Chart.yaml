@@ -1,0 +1,6 @@
+apiVersion: v2
+name: go-cloud
+description: Key-Value Store HTTP API with PostgreSQL, Redis, Prometheus and Grafana
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,8 +1,10 @@
+{{- if .Values.monitoring.grafana.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: go-cloud
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
@@ -15,14 +17,12 @@ spec:
     spec:
       containers:
         - name: grafana
-          image: grafana/grafana:11.3.0
+          image: {{ .Values.monitoring.grafana.image }}
           ports:
-            - containerPort: 3000
+            - containerPort: {{ .Values.monitoring.grafana.port }}
           env:
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: admin
-            - name: GF_INSTALL_PLUGINS
-              value: ""
+              value: {{ .Values.monitoring.grafana.adminPassword }}
           volumeMounts:
             - name: datasource
               mountPath: /etc/grafana/provisioning/datasources
@@ -30,6 +30,8 @@ spec:
             - name: dashboards
               mountPath: /etc/grafana/provisioning/dashboards
               readOnly: true
+          resources:
+            {{- toYaml .Values.monitoring.grafana.resources | nindent 12 }}
       volumes:
         - name: datasource
           configMap:
@@ -42,12 +44,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: grafana
-  namespace: go-cloud
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
 spec:
   selector:
     app: grafana
   ports:
     - protocol: TCP
-      port: 3000
-      targetPort: 3000
-  type: LoadBalancer
+      port: {{ .Values.monitoring.grafana.port }}
+      targetPort: {{ .Values.monitoring.grafana.port }}
+  type: {{ .Values.monitoring.grafana.serviceType }}
+{{- end }}

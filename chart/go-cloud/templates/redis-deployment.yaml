@@ -1,8 +1,10 @@
+{{- if .Values.redis.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
-  namespace: go-cloud
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
@@ -15,11 +17,14 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:7-alpine
+          image: {{ .Values.redis.image }}
           ports:
-            - containerPort: 6379
+            - containerPort: {{ .Values.redis.port }}
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
           readinessProbe:
             tcpSocket:
-              port: 6379
+              port: {{ .Values.redis.port }}
             initialDelaySeconds: 3
             periodSeconds: 5
+{{- end }}

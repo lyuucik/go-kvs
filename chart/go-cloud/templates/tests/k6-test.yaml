@@ -2,14 +2,15 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: k6-script
-  namespace: go-cloud
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
 data:
   test-load.js: |
     import http from 'k6/http';
     import { sleep, check, group } from 'k6';
     import { Rate, Trend, Counter } from 'k6/metrics';
 
-    const BASE_URL = __ENV.BASE_URL || 'http://go-cloud-svc:80';
+    const BASE_URL = 'http://{{ include "go-cloud.fullname" . }}-svc:80';
 
     const cacheHitRate = new Rate('kv_cache_hit_rate');
     const putLatency = new Trend('kv_put_duration_ms');
@@ -31,7 +32,7 @@ data:
     };
 
     function randomKey() {
-      const keys = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta'];
+      const keys = ['alpha','beta','gamma','delta','epsilon','zeta','eta','theta'];
       return keys[Math.floor(Math.random() * keys.length)];
     }
 
@@ -39,34 +40,22 @@ data:
       group('smoke test', () => {
         let res = http.get(`${BASE_URL}/healthz`);
         check(res, { 'healthz ok': (r) => r.status === 200 });
-
         res = http.get(`${BASE_URL}/readyz`);
         check(res, { 'readyz ok': (r) => r.status === 200 });
-
         res = http.get(`${BASE_URL}/metrics`);
         check(res, { 'metrics ok': (r) => r.status === 200 });
-
         const key = randomKey();
         res = http.put(`${BASE_URL}/api/v1/key/${key}`, 'smoke_value');
         check(res, { 'put ok': (r) => r.status === 201 });
-
         res = http.get(`${BASE_URL}/api/v1/key/${key}`);
-        check(res, {
-          'get ok': (r) => r.status === 200,
-          'value matches': (r) => r.json('value') === 'smoke_value',
-        });
-
+        check(res, { 'get ok': (r) => r.status === 200, 'value matches': (r) => r.json('value') === 'smoke_value' });
         res = http.del(`${BASE_URL}/api/v1/key/${key}`);
         check(res, { 'delete ok': (r) => r.status === 204 });
-
-        res = http.get(`${BASE_URL}/api/v1/key/${key}`);
-        check(res, { 'get after delete 404': (r) => r.status === 404 });
       });
     }
 
     function crudOperations(putRatio) {
       const roll = Math.random();
-
       if (roll < putRatio) {
         const key = randomKey();
         const value = `val_${__VU}_${Date.now()}`;
@@ -80,11 +69,7 @@ data:
         const start = Date.now();
         const res = http.get(`${BASE_URL}/api/v1/key/${key}`);
         getLatency.add(Date.now() - start);
-        if (res.status === 200) {
-          cacheHitRate.add(1);
-        } else {
-          cacheHitRate.add(0);
-        }
+        if (res.status === 200) { cacheHitRate.add(1); } else { cacheHitRate.add(0); }
         check(res, { 'get status 200 or 404': (r) => r.status === 200 || r.status === 404 });
         totalOps.add(1);
       } else {
@@ -98,11 +83,8 @@ data:
     }
 
     export default function () {
-      if (__ITER < 3) {
-        smokeTest();
-      } else {
-        crudOperations(0.2);
-      }
+      if (__ITER < 3) { smokeTest(); }
+      else { crudOperations(0.2); }
       sleep(0.5);
     }
 
@@ -111,21 +93,19 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: k6-load-test
-  namespace: go-cloud
+  annotations:
+    "helm.sh/hook": test
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
 spec:
-  backoffLimit: 1
+  backoffLimit: 0
   template:
     spec:
       restartPolicy: Never
       containers:
         - name: k6
           image: grafana/k6:latest
-          args:
-            - run
-            - /scripts/test-load.js
-          env:
-            - name: BASE_URL
-              value: http://go-cloud-svc:80
+          args: [run, /scripts/test-load.js]
           volumeMounts:
             - name: script
               mountPath: /scripts

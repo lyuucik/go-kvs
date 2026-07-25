@@ -1,0 +1,64 @@
+# Namespace override (defaults to release namespace)
+namespaceOverride: ""
+
+app:
+  name: go-cloud
+  image: go-cloud
+  tag: latest
+  pullPolicy: Never
+  replicas: 1
+  port: 8080
+  resources: {}
+  env:
+    databaseUrl: postgres://postgres:password@postgres:5432/kvs?sslmode=disable
+    redisUrl: redis://redis:6379/0
+    cacheTtl: "300"
+  probes:
+    readiness:
+      path: /readyz
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    liveness:
+      path: /healthz
+      initialDelaySeconds: 10
+      periodSeconds: 10
+
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  password: password
+  database: kvs
+  port: 5432
+  resources: {}
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  port: 6379
+  resources: {}
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ""
+  paths:
+    - path: /
+      pathType: Prefix
+
+monitoring:
+  prometheus:
+    enabled: true
+    image: prom/prometheus:v2.55.0
+    port: 9090
+    retention: 7d
+    scrapeInterval: 15s
+    resources: {}
+  grafana:
+    enabled: true
+    image: grafana/grafana:11.3.0
+    port: 3000
+    adminPassword: admin
+    serviceType: LoadBalancer
+    resources: {}
+
+

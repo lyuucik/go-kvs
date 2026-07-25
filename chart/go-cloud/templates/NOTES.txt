@@ -1,0 +1,16 @@
+Go-Cloud is deployed!
+
+API endpoints:
+  http://localhost/healthz
+  http://localhost/readyz
+  http://localhost/api/v1/key/{key}
+
+Metrics:
+  http://localhost/metrics
+
+Grafana:
+  http://localhost:3000
+  login: admin / {{ .Values.monitoring.grafana.adminPassword }}
+
+To run a load test:
+  helm test {{ .Release.Name }}
