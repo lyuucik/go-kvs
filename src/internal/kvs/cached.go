@@ -2,7 +2,7 @@ package kvs
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -54,7 +54,7 @@ func (c *CachedStore) Get(key string) (string, error) {
 		return val, nil
 	}
 	if err != redis.Nil {
-		log.Printf("redis get error: %v", err)
+		slog.Warn("redis get error", "key", key, "error", err)
 		if c.hooks.OnError != nil {
 			c.hooks.OnError()
 		}
@@ -71,7 +71,7 @@ func (c *CachedStore) Get(key string) (string, error) {
 		setCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		if err := c.rdb.Set(setCtx, key, v, c.ttl).Err(); err != nil {
-			log.Printf("redis set error: %v", err)
+			slog.Warn("redis set error", "key", key, "error", err)
 		}
 
 		return v, nil
@@ -118,6 +118,6 @@ func (c *CachedStore) invalidate(key string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	if err := c.rdb.Del(ctx, key).Err(); err != nil {
-		log.Printf("redis del error: %v", err)
+		slog.Warn("redis del error", "key", key, "error", err)
 	}
 }

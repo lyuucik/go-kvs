@@ -5,7 +5,7 @@ import (
 	"kvs/src/internal/api/handler"
 	"kvs/src/internal/api/metrics"
 	"kvs/src/internal/kvs"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,8 +15,6 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -30,18 +28,19 @@ func main() {
 			if err == nil {
 				break
 			}
-			log.Printf("postgres not ready (attempt %d/10): %v", i+1, err)
+			slog.Warn("postgres not ready, retrying", "attempt", i+1, "max", 10, "error", err)
 			time.Sleep(3 * time.Second)
 		}
 		if err != nil {
-			log.Fatalf("failed to connect to postgres: %v", err)
+			slog.Error("failed to connect to postgres", "error", err)
+			os.Exit(1)
 		}
 		defer pgStore.Close()
 		store = pgStore
-		log.Println("using postgres storage")
+		slog.Info("using postgres storage")
 	} else {
 		store = kvs.NewKeyValueStore()
-		log.Println("using in-memory storage")
+		slog.Info("using in-memory storage")
 	}
 
 	cacheTTL := 5 * time.Minute
@@ -58,11 +57,11 @@ func main() {
 			OnError:  metrics.IncCacheErrors,
 		})
 		if err != nil {
-			log.Printf("redis connection failed, running without cache: %v", err)
+			slog.Warn("redis connection failed, running without cache", "error", err)
 		} else {
 			defer cached.Close()
 			store = cached
-			log.Println("using redis cache")
+			slog.Info("using redis cache")
 		}
 	}
 
@@ -78,20 +77,22 @@ func main() {
 	}
 
 	go func() {
-		log.Println("starting server on :8080")
+		slog.Info("starting server", "addr", ":8080")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("shutting down gracefully...")
+	slog.Info("shutting down gracefully...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("shutdown error: %v", err)
+		slog.Error("shutdown error", "error", err)
+		os.Exit(1)
 	}
-	log.Println("server stopped")
+	slog.Info("server stopped")
 }
