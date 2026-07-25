@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func setupTestServer(t *testing.T) *httptest.Server {
@@ -16,11 +17,15 @@ func setupTestServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(h.Routes())
 }
 
+func testClient() *http.Client {
+	return &http.Client{Timeout: 5 * time.Second}
+}
+
 func TestHealthz(t *testing.T) {
 	srv := setupTestServer(t)
 	defer srv.Close()
 
-	resp, err := http.Get(srv.URL + "/healthz")
+	resp, err := testClient().Get(srv.URL + "/healthz")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +40,7 @@ func TestReadyz(t *testing.T) {
 	srv := setupTestServer(t)
 	defer srv.Close()
 
-	resp, err := http.Get(srv.URL + "/readyz")
+	resp, err := testClient().Get(srv.URL + "/readyz")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +56,7 @@ func TestPutKey(t *testing.T) {
 	defer srv.Close()
 
 	req, _ := http.NewRequest(http.MethodPut, srv.URL+"/api/v1/key/mykey", strings.NewReader("myvalue"))
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := testClient().Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,9 +72,9 @@ func TestGetKey(t *testing.T) {
 	defer srv.Close()
 
 	putReq, _ := http.NewRequest(http.MethodPut, srv.URL+"/api/v1/key/hello", strings.NewReader("world"))
-	http.DefaultClient.Do(putReq)
+	testClient().Do(putReq)
 
-	resp, err := http.Get(srv.URL + "/api/v1/key/hello")
+	resp, err := testClient().Get(srv.URL + "/api/v1/key/hello")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +97,7 @@ func TestGetKeyNotFound(t *testing.T) {
 	srv := setupTestServer(t)
 	defer srv.Close()
 
-	resp, err := http.Get(srv.URL + "/api/v1/key/nonexistent")
+	resp, err := testClient().Get(srv.URL + "/api/v1/key/nonexistent")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,10 +113,10 @@ func TestDeleteKey(t *testing.T) {
 	defer srv.Close()
 
 	putReq, _ := http.NewRequest(http.MethodPut, srv.URL+"/api/v1/key/todelete", strings.NewReader("val"))
-	http.DefaultClient.Do(putReq)
+	testClient().Do(putReq)
 
 	delReq, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/key/todelete", nil)
-	resp, err := http.DefaultClient.Do(delReq)
+	resp, err := testClient().Do(delReq)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,12 +132,12 @@ func TestGetKeyAfterDelete(t *testing.T) {
 	defer srv.Close()
 
 	putReq, _ := http.NewRequest(http.MethodPut, srv.URL+"/api/v1/key/temp", strings.NewReader("val"))
-	http.DefaultClient.Do(putReq)
+	testClient().Do(putReq)
 
 	delReq, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/key/temp", nil)
-	http.DefaultClient.Do(delReq)
+	testClient().Do(delReq)
 
-	resp, err := http.Get(srv.URL + "/api/v1/key/temp")
+	resp, err := testClient().Get(srv.URL + "/api/v1/key/temp")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +153,7 @@ func TestDeleteNonExistentKey(t *testing.T) {
 	defer srv.Close()
 
 	req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/key/ghost", nil)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := testClient().Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}

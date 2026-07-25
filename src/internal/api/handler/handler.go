@@ -51,16 +51,19 @@ func (h *keyValueHandler) readyzHandler(w http.ResponseWriter, r *http.Request) 
 
 func (h *keyValueHandler) putKey(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
+	r.Body = http.MaxBytesReader(w, r.Body, 10<<10)
 	value, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("put %s: read body: %v", key, err)
+		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.kvs.Put(key, string(value)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("put %s: store: %v", key, err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -73,10 +76,11 @@ func (h *keyValueHandler) getKey(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case errors.Is(err, kvs.ErrorNoSuchKey):
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "no such key", http.StatusNotFound)
 		return
 	case err != nil:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("get %s: %v", key, err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -87,7 +91,8 @@ func (h *keyValueHandler) deleteKey(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
 
 	if err := h.kvs.Delete(key); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("delete %s: %v", key, err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
