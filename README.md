@@ -1,6 +1,6 @@
 # Go-Cloud
 
-In-memory / PostgreSQL-backed Key-Value Store HTTP API with Redis cache, Prometheus metrics, and Grafana dashboards. Runs on Kubernetes with Ingress.
+In-memory / PostgreSQL-backed Key-Value Store HTTP API with Redis cache, Prometheus metrics, and Grafana dashboards. Runs on Kubernetes with Ingress. Managed via ArgoCD GitOps.
 
 ## Architecture
 
