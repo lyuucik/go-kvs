@@ -23,7 +23,16 @@ func main() {
 	databaseURL := os.Getenv("DATABASE_URL")
 	var store kvs.KeyValueStore
 	if databaseURL != "" {
-		pgStore, err := kvs.NewPostgresStore(ctx, databaseURL)
+		var pgStore *kvs.PostgresStore
+		var err error
+		for i := 0; i < 10; i++ {
+			pgStore, err = kvs.NewPostgresStore(ctx, databaseURL)
+			if err == nil {
+				break
+			}
+			log.Printf("postgres not ready (attempt %d/10): %v", i+1, err)
+			time.Sleep(3 * time.Second)
+		}
 		if err != nil {
 			log.Fatalf("failed to connect to postgres: %v", err)
 		}
