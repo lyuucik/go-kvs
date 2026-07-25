@@ -13,16 +13,24 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  test:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - run: go test -v -race ./...
+
   build:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    needs: [test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
     steps:
-      - name: Skip CI-triggered commits
-        if: ${{ github.actor == 'github-actions[bot]' }}
-        run: echo "Skipping CI on automated commit" && exit 0
-
       - uses: actions/checkout@v4
 
       - name: Log in to GHCR
@@ -41,7 +49,6 @@ jobs:
       - name: Update values.yaml with new image tag
         run: |
           sed -i 's|^  tag: .*|  tag: '"${{ github.sha }}"'|' chart/go-cloud/values.yaml
-          sed -i 's|pullPolicy: Never|pullPolicy: IfNotPresent|' chart/go-cloud/values.yaml
 
       - name: Commit updated values.yaml back to repo
         run: |
