@@ -11,6 +11,11 @@ Metrics:
 Grafana:
   http://localhost:3000
   login: admin / {{ .Values.monitoring.grafana.adminPassword }}
+  datasources: Prometheus, Loki
+
+Loki log aggregation:
+  All pod logs are collected by Promtail and sent to Loki.
+  Query logs in Grafana Explore with label selectors (namespace, app, container).
 
 To run a load test:
   helm test {{ .Release.Name }}

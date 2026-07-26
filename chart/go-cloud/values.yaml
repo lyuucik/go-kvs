@@ -95,5 +95,26 @@ monitoring:
       limits:
         memory: 256Mi
         cpu: 200m
+  loki:
+    enabled: true
+    image: grafana/loki:3.2.1
+    port: 3100
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 500m
+  promtail:
+    enabled: true
+    image: grafana/promtail:3.2.1
+    resources:
+      requests:
+        memory: 64Mi
+        cpu: 50m
+      limits:
+        memory: 256Mi
+        cpu: 200m
 
 

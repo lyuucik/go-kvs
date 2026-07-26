@@ -15,4 +15,8 @@ data:
         access: proxy
         url: http://prometheus:{{ .Values.monitoring.prometheus.port }}
         isDefault: true
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki:{{ .Values.monitoring.loki.port }}
 {{- end }}
