@@ -1,0 +1,67 @@
+{{- if .Values.monitoring.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        options:
+          path: /etc/grafana/provisioning/dashboards
+  go-cloud-dashboard.json: |
+    {
+      "title": "Go-Cloud Dashboard",
+      "uid": "go-cloud",
+      "tags": ["go-cloud"],
+      "timezone": "browser",
+      "panels": [
+        {
+          "title": "HTTP Requests Rate",
+          "type": "graph",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "rate(http_requests_total[1m])",
+              "legendFormat": "total rps"
+            }
+          ]
+        },
+        {
+          "title": "Cache Hit / Miss Ratio",
+          "type": "graph",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "rate(kv_cache_hits_total[1m])",
+              "legendFormat": "hits"
+            },
+            {
+              "expr": "rate(kv_cache_misses_total[1m])",
+              "legendFormat": "misses"
+            }
+          ]
+        },
+        {
+          "title": "Uptime",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "kv_uptime_seconds"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 40,
+      "version": 1
+    }
+{{- end }}

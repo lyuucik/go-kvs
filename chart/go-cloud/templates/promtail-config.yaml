@@ -1,0 +1,29 @@
+{{- if .Values.monitoring.promtail.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    clients:
+      - url: http://loki:{{ .Values.monitoring.loki.port }}/loki/api/v1/push
+    positions:
+      filename: /run/promtail/positions.yaml
+    scrape_configs:
+      - job_name: kubernetes-pods
+        static_configs:
+          - targets: []
+            labels:
+              job: kubernetes-pods
+              __path__: /var/log/pods/*/*/*.log
+        pipeline_stages:
+          - regex:
+              expression: "/var/log/pods/(?P<parsed_namespace>[^_]+)_(?P<parsed_pod>[^_]+)_[^/]+/(?P<parsed_container>[^/]+)/.*\\.log"
+              source: filename
+          - labels:
+              namespace: parsed_namespace
+              pod: parsed_pod
+              container: parsed_container
+{{- end }}

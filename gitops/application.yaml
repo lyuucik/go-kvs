@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: go-cloud
+  namespace: argocd
+spec:
+  project: go-cloud
+  source:
+    repoURL: https://github.com/lyuucik/go-kvs.git
+    targetRevision: dev
+    path: chart/go-cloud
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: go-cloud
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  revisionHistoryLimit: 5

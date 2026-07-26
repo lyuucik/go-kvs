@@ -1,0 +1,21 @@
+Go-Cloud is deployed!
+
+API endpoints:
+  http://localhost/healthz
+  http://localhost/readyz
+  http://localhost/api/v1/key/{key}
+
+Metrics:
+  http://localhost/metrics
+
+Grafana:
+  http://localhost:3000
+  login: admin / {{ .Values.monitoring.grafana.adminPassword }}
+  datasources: Prometheus, Loki
+
+Loki log aggregation:
+  All pod logs are collected by Promtail and sent to Loki.
+  Query logs in Grafana Explore with label selectors (namespace, app, container).
+
+To run a load test:
+  helm test {{ .Release.Name }}

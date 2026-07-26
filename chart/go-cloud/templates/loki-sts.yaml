@@ -1,0 +1,39 @@
+{{- if .Values.monitoring.loki.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  labels:
+    {{- include "go-cloud.labels" . | nindent 4 }}
+spec:
+  serviceName: loki
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+        - name: loki
+          image: {{ .Values.monitoring.loki.image }}
+          args:
+            - -config.file=/etc/loki/config.yaml
+          ports:
+            - containerPort: {{ .Values.monitoring.loki.port }}
+          resources:
+            {{- toYaml .Values.monitoring.loki.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+            - name: storage
+              mountPath: /loki
+      volumes:
+        - name: config
+          configMap:
+            name: loki-config
+        - name: storage
+          emptyDir: {}
+{{- end }}
