@@ -66,6 +66,7 @@ func (h *keyValueHandler) putKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+	slog.Info("put", "key", key, "size", len(value))
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -76,6 +77,7 @@ func (h *keyValueHandler) getKey(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case errors.Is(err, kvs.ErrorNoSuchKey):
+		slog.Info("get", "key", key, "found", false)
 		http.Error(w, "no such key", http.StatusNotFound)
 		return
 	case err != nil:
@@ -84,6 +86,7 @@ func (h *keyValueHandler) getKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("get", "key", key, "found", true)
 	writeJSON(w, envelope{"value": v}, http.StatusOK, nil)
 }
 
@@ -95,5 +98,6 @@ func (h *keyValueHandler) deleteKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+	slog.Info("delete", "key", key)
 	w.WriteHeader(http.StatusNoContent)
 }
