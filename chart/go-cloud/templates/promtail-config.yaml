@@ -18,10 +18,17 @@ data:
             labels:
               job: kubernetes-pods
               __path__: /var/log/pods/*/*/*.log
-        pipeline_stages:
-          - regex:
-              expression: "^(?P<timestamp>\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2})"
-          - timestamp:
-              source: timestamp
-              format: "2006/01/02 15:04:05"
+        relabel_configs:
+          - source_labels: [__path__]
+            regex: /var/log/pods/([^_]+)_([^_]+)_([^/]+)/([^/]+)/.*\.log
+            replacement: '${1}'
+            target_label: namespace
+          - source_labels: [__path__]
+            regex: /var/log/pods/([^_]+)_([^_]+)_([^/]+)/([^/]+)/.*\.log
+            replacement: '${2}'
+            target_label: pod
+          - source_labels: [__path__]
+            regex: /var/log/pods/([^_]+)_([^_]+)_([^/]+)/([^/]+)/.*\.log
+            replacement: '${4}'
+            target_label: container
 {{- end }}

@@ -28,6 +28,9 @@ spec:
             - name: pods
               mountPath: /var/log/pods
               readOnly: true
+            - name: containers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
             - name: positions
               mountPath: /run/promtail
       volumes:
@@ -37,6 +40,9 @@ spec:
         - name: pods
           hostPath:
             path: /var/log/pods
+        - name: containers
+          hostPath:
+            path: /var/lib/docker/containers
         - name: positions
           emptyDir: {}
 ---
