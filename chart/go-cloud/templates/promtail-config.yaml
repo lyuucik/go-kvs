@@ -13,22 +13,13 @@ data:
       filename: /run/promtail/positions.yaml
     scrape_configs:
       - job_name: kubernetes-pods
-        static_configs:
-          - targets: []
-            labels:
-              job: kubernetes-pods
-              __path__: /var/log/pods/*/*/*.log
+        kubernetes_sd_configs:
+          - role: pod
         relabel_configs:
-          - source_labels: [__path__]
-            regex: /var/log/pods/([^_]+)_([^_]+)_([^/]+)/([^/]+)/.*\.log
-            replacement: '${1}'
+          - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
-          - source_labels: [__path__]
-            regex: /var/log/pods/([^_]+)_([^_]+)_([^/]+)/([^/]+)/.*\.log
-            replacement: '${2}'
+          - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
-          - source_labels: [__path__]
-            regex: /var/log/pods/([^_]+)_([^_]+)_([^/]+)/([^/]+)/.*\.log
-            replacement: '${4}'
+          - source_labels: [__meta_kubernetes_pod_container_name]
             target_label: container
 {{- end }}
