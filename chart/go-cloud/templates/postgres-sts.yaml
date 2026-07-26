@@ -27,7 +27,7 @@ spec:
         app: postgres
     spec:
       securityContext:
-        runAsNonRoot: true
+        fsGroup: 999
       containers:
         - name: postgres
           image: {{ .Values.postgres.image }}
